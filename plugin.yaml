@@ -1,0 +1,3 @@
+name: uniichat
+version: 0.1.0
+description: "Uniichat memory — the chat log IS the memory. Append-only log + binary summary tree; route+zoom retrieval over every past turn."
