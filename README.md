@@ -71,7 +71,7 @@ next work item.
 ![Negative baseline benchmark](docs/infographics/negative-web.jpg)
 ![Paraphrase recall benchmark](docs/infographics/paraphrase.png)
 
-*Infographics generated with Gemini (subscription quota) — every number
+*Infographics styled in the Hermes Duet design language — every number
 grounded in `bench/` result files.*
 
 ## Install & test
