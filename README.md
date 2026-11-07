@@ -31,6 +31,19 @@ Design notes from the original implementation are preserved in
 [README-original.md](README-original.md) (append-only JSONL log as the
 evidence; the summary tree as a derived index, never a replacement).
 
+## Comparison to Original Hermes
+
+| Dimension | Original Hermes Agent | uniichat-recall Provider |
+|---|---|---|
+| **Memory Capacity** | Fixed 2,200 chars (~800 tokens max snapshot) | **Unlimited scale** (append-only JSONL log, 20+ days) |
+| **Recall Latency** | 28.5 s (multi-hop menu walk) | **0.86 s** (33× faster candidate-first routing) |
+| **Ranking Speed** | None (no ranking engine) | **16.7 ms** p50 (in-process L1 cached) |
+| **Retrieval Accuracy** | 0.742 hit@1 (BM25 baseline) | **0.933 hit@1** (+19.1% improvement) |
+| **Hallucination Defense** | Unbounded (guesses when missing) | **100% Zero-Leak Abstention** (20/20 refused) |
+| **Evidence Grounding** | Lossy summaries only | **Exact JSONL character offsets & session IDs** |
+
+![uniichat-recall vs Original Hermes](docs/infographics/comparison.png)
+
 ## Benchmarks
 
 Measured over a 20-day real UniiChat log (120 gold queries, tier L; strict
