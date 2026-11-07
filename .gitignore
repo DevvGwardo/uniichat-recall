@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+
+# benchmark artifacts: a frozen log copy and per-run results are local, not source
+bench/snapshot/
+bench/result-*.json
+bench/semantic.log
+bench/gold.jsonl
+bench/*.log
