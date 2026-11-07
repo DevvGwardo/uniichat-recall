@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.jpg" alt="uniichat-recall Banner" />
+</p>
+
 # uniichat-recall
 
 An independent Python memory-provider for [Hermes Agent](https://github.com/NousResearch/hermes-agent) that reads the **UniiChat** log format.
