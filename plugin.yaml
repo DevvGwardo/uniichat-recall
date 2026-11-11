@@ -1,3 +1,6 @@
-name: uniichat
+name: uniichat-recall
 version: 0.1.0
+license: MIT
+homepage: https://github.com/DevvGwardo/uniichat-recall
+requires_hermes: ">=0.23.0"
 description: "Uniichat memory — the chat log IS the memory. Append-only log + binary summary tree; route+zoom retrieval over every past turn."

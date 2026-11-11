@@ -9,7 +9,7 @@ as a Hermes MemoryProvider:
 - retrieval tool: route via index -> zoom to raw leaves -> answer
 
 Storage: the default fleet Hermes root's uniichat/ (or a configured root).
-Config: plugins.uniichat.summarize (bool, default true) — when false the
+Config: plugins.uniichat-recall.summarize (bool, default true) — when false the
 tree is built with cheap clipped nodes (no LLM calls).
 """
 
@@ -130,7 +130,7 @@ class UniichatMemoryProvider(MemoryProvider):
 
     @property
     def name(self) -> str:
-        return "uniichat"
+        return "uniichat-recall"
 
     def is_available(self) -> bool:
         try:
@@ -483,7 +483,7 @@ def register(ctx) -> None:
     try:
         from hermes_cli.config import load_config
         cfg = load_config() or {}
-        plug_cfg = cfg_get(cfg, "plugins", "uniichat") or {}
+        plug_cfg = cfg_get(cfg, "plugins", "uniichat-recall") or {}
     except Exception:
         plug_cfg = {}
     if not isinstance(plug_cfg, dict):

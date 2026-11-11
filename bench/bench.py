@@ -58,12 +58,12 @@ def load_store(root: Path):
 
 
 def load_key() -> None:
+    """The key comes from the environment; never from a profile's .env file."""
     import os  # noqa: PLC0415
 
-    env_file = Path.home() / ".hermes" / "profiles" / "agent-two" / ".env"
-    for line in env_file.read_text().splitlines():
-        if line.startswith("HERMES_CUSTOM_API_SURPLUSINTELLIGENCE_AI_API_KEY="):
-            os.environ.setdefault(*line.strip().split("=", 1))
+    if not os.environ.get("HERMES_CUSTOM_API_SURPLUSINTELLIGENCE_AI_API_KEY"):
+        raise SystemExit(
+            "set HERMES_CUSTOM_API_SURPLUSINTELLIGENCE_AI_API_KEY to run model tiers")
 
 
 def patch_answer_model(model: str) -> None:
@@ -78,8 +78,6 @@ def patch_answer_model(model: str) -> None:
     import urllib.request  # noqa: PLC0415
 
     import uniichat as plugin  # noqa: PLC0415
-
-    load_key()
 
     def _chat(prompt: str, max_tokens: int = 1500, *, timeout: float = 90):
         import os  # noqa: PLC0415
@@ -362,12 +360,14 @@ def ask_model(model: str, prompt: str, max_tokens: int = 500, timeout: float = 6
     import os  # noqa: PLC0415
     import urllib.request  # noqa: PLC0415
 
-    load_key()
+    key = os.environ.get("HERMES_CUSTOM_API_SURPLUSINTELLIGENCE_AI_API_KEY")
+    if not key:
+        raise SystemExit("set HERMES_CUSTOM_API_SURPLUSINTELLIGENCE_AI_API_KEY to judge answers")
     body = _json.dumps({"model": model, "max_tokens": max_tokens, "temperature": 0,
                         "messages": [{"role": "user", "content": prompt}]}).encode()
     request = urllib.request.Request(
         "https://api.surplusintelligence.ai/v1/chat/completions", data=body,
-        headers={"Authorization": f"Bearer {os.environ['HERMES_CUSTOM_API_SURPLUSINTELLIGENCE_AI_API_KEY']}",
+        headers={"Authorization": f"Bearer {key}",
                  "Content-Type": "application/json"})
     with urllib.request.urlopen(request, timeout=timeout) as handle:
         data = _json.loads(handle.read())

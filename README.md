@@ -89,6 +89,25 @@ The bench (`bench/bench.py`, `bench/misses.py`) needs your own UniiChat log
 snapshot — none is bundled, on purpose: real logs contain private
 conversations.
 
+## Disclosure
+
+What this plugin does beyond local storage, so you can decide before installing:
+
+- **Optional third-party summarization.** When
+  `HERMES_CUSTOM_API_SURPLUSINTELLIGENCE_AI_API_KEY` is set, chat excerpts are
+  sent to `api.surplusintelligence.ai` (model `glm-4.7-flash`) to compress
+  summary-tree nodes and to answer/route recall queries. It runs fully offline
+  when the key is absent or `summarize: false` (clipped verbatim nodes, no
+  model calls).
+- **Optional `agy` CLI and background work.** On a semantic miss the provider
+  may spawn the `agy` (Antigravity/Gemini) CLI as a second-opinion reviewer,
+  when the binary is present and the semantic budget allows. Separately, a
+  background thread rebuilds the summary tree after turns are appended.
+- **Local logs.** The append-only log, derived tree, and `misses.jsonl` live
+  under `~/.hermes/uniichat` (configurable via `root`). **Linux/macOS only**:
+  the store uses `fcntl` for cross-process append locks, so the plugin does not
+  load on Windows.
+
 ## Status
 
 Working, benchmarked, 52/52 tests. The `store.py` ranking, two-tier
