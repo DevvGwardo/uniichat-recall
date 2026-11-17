@@ -85,13 +85,19 @@ def patch_answer_model(model: str) -> None:
         key = os.environ.get("HERMES_CUSTOM_API_SURPLUSINTELLIGENCE_AI_API_KEY")
         if not key:
             return None
+        # Mirror the plugin's call shape: reasoning-era models burn small
+        # max_tokens budgets on hidden reasoning at default effort (measured
+        # 2026-11-17: glm-5.3-flash, max_tokens=120, no effort -> empty content,
+        # finish_reason=length; with effort=low the same call answers in ~4 s).
         body = json.dumps({"model": model, "max_tokens": max_tokens, "temperature": 0.2,
+                           "reasoning_effort": "low",
                            "messages": [{"role": "user", "content": prompt}]}).encode()
         req = urllib.request.Request(
             "https://api.surplusintelligence.ai/v1/chat/completions", data=body,
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as handle:
+            with urllib.request.urlopen(req, timeout=timeout,
+                                        context=plugin._tls_context()) as handle:
                 data = json.loads(handle.read())
             return (data["choices"][0]["message"].get("content") or "").strip() or None
         except Exception:
@@ -369,7 +375,8 @@ def ask_model(model: str, prompt: str, max_tokens: int = 500, timeout: float = 6
         "https://api.surplusintelligence.ai/v1/chat/completions", data=body,
         headers={"Authorization": f"Bearer {key}",
                  "Content-Type": "application/json"})
-    with urllib.request.urlopen(request, timeout=timeout) as handle:
+    from uniichat import _tls_context  # noqa: PLC0415 - path setup by caller
+    with urllib.request.urlopen(request, timeout=timeout, context=_tls_context()) as handle:
         data = _json.loads(handle.read())
     return (data["choices"][0]["message"].get("content") or "").strip()
 

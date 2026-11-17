@@ -173,7 +173,11 @@ class OptimizedStoreTests(unittest.TestCase):
 
 
 class OptimizedProviderTests(unittest.TestCase):
-    setUp = providers.ProviderTests.setUp
+    def setUp(self):
+        providers.ProviderTests.setUp(self)
+        # Base semantic-path shape (one answer call, no expansion hop) is pinned
+        # here; QueryExpansionTests covers the expansion tier.
+        self.provider._config["query_expansion"] = False
     def test_unicode_phrase_and_whole_token_excerpt_offsets(self):
         for prefix, query, evidence in [
             ("ß" * 35000, "needle", "needle proof"),

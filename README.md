@@ -22,6 +22,9 @@ hallucinated memory, ever.
 
 - **Ranking:** coverage-primary scoring with a BM25-lite tie-break over
   cold-window candidates, L1-cached
+- **Query expansion:** when the query's own words rank no candidate, one cheap
+  model call re-expresses it in the log's vocabulary and the variant hits join
+  the candidate pool — the fix for paraphrased questions (offline = no-op)
 - **Two-tier evidence:** candidate-first routing with a strong-gate
   (second-opinion model) tier for ambiguous windows
 - **Negative gate:** adversarial queries never leak; the provider returns
@@ -60,11 +63,20 @@ ranking p50 **16.7 ms** / p95 28.9 ms; LLM-judged tier p50 23.5 ms / p95
 47.5 ms.
 
 **Negative baseline:** 20/20 adversarial queries abstained; 0 secrets
-leaked; 0.0 false-positive gate rate on real queries.
+leaked; 0.0 false-positive gate rate on real queries. Re-checked live
+2026-11-17 with expansion on: 4/4 adversarial/injection queries abstained,
+and credential-shaped tokens in outbound transcripts are masked
+(`apikey_*`, `sk-*`, `vck_*`, `gh*` patterns) — the local log stays
+complete, only bytes leaving for the model endpoint are redacted.
 
-**Known limitation (honest number):** paraphrased queries recall **3 / 6** —
-lexical ranking misses rephrased wording; semantic paraphrase recall is the
-next work item.
+**Paraphrase recall (the old honest gap):** lexical ranking misses rephrased
+wording — 3/6 on the frozen 20-day bench. Query expansion (one model call
+re-expressing the query into search variants) is the shipped fix; measured
+2026-11-17 on a fresh 8-item paraphrase set over a 3-day log snapshot with
+glm-5.3-flash: judged-correct 5/8 -> 6/8, gold-in-window unchanged (6/8),
+zero regressions, median latency 4.4 s -> 12.3 s. The remaining misses: one
+true retrieval miss (variants still didn't reach the gold session) and one
+strict-judge case. The frozen 20-day bench remains the hard case to re-run.
 
 ![Retrieval accuracy benchmark](docs/infographics/ranking.png)
 ![Latency benchmark](docs/infographics/latency-web.jpg)
@@ -83,7 +95,7 @@ config. Tests are stdlib `unittest`:
 ```sh
 pip install ruamel.yaml
 PYTHONPATH=<hermes-agent> python -m unittest discover -s tests
-# 53 tests, ~10s
+# 61 tests, ~11s
 ```
 
 `store.py` tests are dependency-free; the provider tests import
@@ -99,12 +111,14 @@ conversations.
 
 What this plugin does beyond local storage, so you can decide before installing:
 
-- **Optional third-party summarization.** When
+- **Optional third-party model calls.** When
   `HERMES_CUSTOM_API_SURPLUSINTELLIGENCE_AI_API_KEY` is set, chat excerpts are
-  sent to `api.surplusintelligence.ai` (model `glm-4.7-flash`) to compress
-  summary-tree nodes and to answer/route recall queries. It runs fully offline
-  when the key is absent or `summarize: false` (clipped verbatim nodes, no
-  model calls).
+  sent to `api.surplusintelligence.ai` (model `glm-5.3-flash`,
+  `reasoning_effort=low`) to compress summary-tree nodes, to answer/route
+  recall queries, and — on a weak keyword match — to re-express the query
+  itself into search variants. It runs fully offline when the key is absent or
+  `summarize: false` (clipped verbatim nodes, no model calls).
+  Credential-shaped tokens are masked in transcripts before transmission.
 - **Optional `agy` CLI and background work.** On a semantic miss the provider
   may spawn the `agy` (Antigravity/Gemini) CLI as a second-opinion reviewer,
   when the binary is present and the semantic budget allows. Separately, a
@@ -117,6 +131,7 @@ What this plugin does beyond local storage, so you can decide before installing:
 
 ## Status
 
-Working, benchmarked, 53/53 tests on Linux and Windows. The `store.py`
+Working, benchmarked, 61/61 tests on Linux and Windows. The `store.py`
 ranking, two-tier evidence routing, and negative gate are considered
-stable; the paraphrase gap is the open work item.
+stable; query expansion addresses the paraphrase gap (see Benchmarks), and
+re-running the frozen 20-day bench against it is the remaining work item.

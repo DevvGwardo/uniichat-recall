@@ -133,7 +133,10 @@ class ColdIndexTests(unittest.TestCase):
 
 
 class ExactEvidenceTests(unittest.TestCase):
-    setUp = providers.ProviderTests.setUp
+    def setUp(self):
+        providers.ProviderTests.setUp(self)
+        # Exact-call-shape tests: expansion off; QueryExpansionTests covers it.
+        self.provider._config["query_expansion"] = False
 
     def test_cited_record_can_be_read_in_complete_bounded_chunks_without_a_model(self):
         original = "✓\x00\"" * 18000 + "the final receipt"
