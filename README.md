@@ -81,9 +81,15 @@ Drop this directory into your Hermes plugins folder (e.g.
 config. Tests are stdlib `unittest`:
 
 ```sh
-PYTHONPATH=<hermes-agent>:<plugins-dir> python -m unittest discover -s tests
-# 52 tests, ~2s
+pip install ruamel.yaml
+PYTHONPATH=<hermes-agent> python -m unittest discover -s tests
+# 52 tests, ~10s
 ```
+
+`store.py` tests are dependency-free; the provider tests import
+`agent.memory_provider` / `hermes_cli.config` from a hermes-agent checkout,
+which is the only reason `PYTHONPATH` and `ruamel.yaml` are needed. CI runs
+the full suite on both `ubuntu-latest` and `windows-latest`.
 
 The bench (`bench/bench.py`, `bench/misses.py`) needs your own UniiChat log
 snapshot — none is bundled, on purpose: real logs contain private
@@ -104,12 +110,13 @@ What this plugin does beyond local storage, so you can decide before installing:
   when the binary is present and the semantic budget allows. Separately, a
   background thread rebuilds the summary tree after turns are appended.
 - **Local logs.** The append-only log, derived tree, and `misses.jsonl` live
-  under `~/.hermes/uniichat` (configurable via `root`). **Linux/macOS only**:
-  the store uses `fcntl` for cross-process append locks, so the plugin does not
-  load on Windows.
+  under `~/.hermes/uniichat` (configurable via `root`). Cross-platform:
+  cross-process append locks use `fcntl` on POSIX and an `msvcrt`
+  byte-range-lock shim on Windows; directory fsync around atomic renames is
+  POSIX-only (Windows renames are atomic without it).
 
 ## Status
 
-Working, benchmarked, 52/52 tests. The `store.py` ranking, two-tier
-evidence routing, and negative gate are considered stable; the paraphrase
-gap is the open work item.
+Working, benchmarked, 52/52 tests on Linux and Windows. The `store.py`
+ranking, two-tier evidence routing, and negative gate are considered
+stable; the paraphrase gap is the open work item.

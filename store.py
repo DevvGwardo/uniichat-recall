@@ -3,7 +3,31 @@
 from __future__ import annotations
 
 import contextlib
-import fcntl
+try:
+    import fcntl
+except ImportError:  # Windows: no fcntl — byte-range locks via msvcrt
+    import msvcrt
+
+    class fcntl:  # minimal stand-in for the POSIX module (flock semantics)
+        LOCK_UN = 0
+        LOCK_EX = 1
+        LOCK_NB = 2
+
+        @staticmethod
+        def flock(handle, flags):
+            handle.flush()
+            pos = handle.tell()
+            handle.seek(0)
+            op = (msvcrt.LK_UNLCK if flags == 0 else
+                  msvcrt.LK_NBLCK if flags & 2 else msvcrt.LK_LOCK)
+            try:
+                msvcrt.locking(handle.fileno(), op, 1)
+            except OSError as exc:
+                if op == msvcrt.LK_NBLCK:
+                    raise BlockingIOError(*exc.args) from exc
+                raise
+            finally:
+                handle.seek(pos)
 import hashlib
 import json
 import math
@@ -254,11 +278,14 @@ class UniichatStore:
             # Strict same-directory rename is intentional: the host's generic
             # publisher can fall back to an in-place copy. Derived indexes must
             # remain atomic, and this store also supports standalone maintenance.
-            directory = os.open(path.parent, os.O_RDONLY)
-            try:
-                os.fsync(directory)
-            finally:
-                os.close(directory)
+            if os.name == "posix":
+                # Directory fsync is POSIX-only: Windows cannot fsync a directory,
+                # and os.open() on one raises PermissionError there.
+                directory = os.open(path.parent, os.O_RDONLY)
+                try:
+                    os.fsync(directory)
+                finally:
+                    os.close(directory)
         finally:
             try:
                 os.unlink(temporary)
