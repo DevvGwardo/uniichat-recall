@@ -77,6 +77,12 @@ glm-5.3-flash: judged-correct 5/8 -> 6/8, gold-in-window unchanged (6/8),
 zero regressions, median latency 4.4 s -> 12.3 s. The remaining misses: one
 true retrieval miss (variants still didn't reach the gold session) and one
 strict-judge case. The frozen 20-day bench remains the hard case to re-run.
+LLM-free alternatives (pseudo-relevance feedback, query-term co-occurrence
+mining — `bench/offline_expanders.py`) were built and measured on the same
+set: both 6/8 retrieval, identical to baseline — a 120-record chatty log has
+no statistically visible co-occurrence breadcrumbs, exactly as predicted for
+corpus-local expansion. They may pay off on a large old log; re-run the tool
+against the frozen 20-day bench before adding an offline expansion tier.
 
 ![Retrieval accuracy benchmark](docs/infographics/ranking.png)
 ![Latency benchmark](docs/infographics/latency-web.jpg)
