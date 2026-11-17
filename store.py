@@ -170,11 +170,29 @@ class UniichatStore:
                     stat = os.fstat(handle.fileno())
                     version = [stat.st_size, stat.st_mtime_ns, stat.st_ino, stat.st_ctime_ns]
                     old = self._stats.get(path.name)
+                    # Stat identity alone cannot prove the tail is unchanged:
+                    # Windows filesystems report identical mtime/ctime for
+                    # consecutive rewrites within the timestamp granularity,
+                    # so a same-size tail edit can look like no change at all.
+                    # The anchor — the last complete line consumed, re-read and
+                    # re-hashed every call — is content proof for that case.
+                    anchored = False
                     if old and (old["version"] == version or
                                 (old["version"][2] == stat.st_ino and old["version"][0] < stat.st_size)):
+                        anchor, digest = old.get("anchor"), old.get("digest")
+                        if anchor is None:  # nothing consumed yet: offset is 0, full rescan anyway
+                            anchored = True
+                        else:
+                            handle.seek(anchor)
+                            line = handle.readline()
+                            anchored = (line.endswith(b"\n") and handle.tell() <= stat.st_size and
+                                        hashlib.blake2b(line, digest_size=16).digest() == digest)
+                    if old and anchored:
                         offset, count, highest = old["offset"], old["count"], old["max"]
+                        anchor, digest = old.get("anchor"), old.get("digest")
                     else:
                         offset, count, highest = 0, 0, -1
+                        anchor, digest = None, None
                     handle.seek(offset)
                     tail = None
                     while line := handle.readline():
@@ -182,11 +200,13 @@ class UniichatStore:
                         if not line.endswith(b"\n"):
                             tail = record
                             break
+                        anchor, digest = offset, hashlib.blake2b(line, digest_size=16).digest()
                         offset = handle.tell()
                         if record is not None:
                             count += 1
                             highest = max(highest, record["i"])
-                    current[path.name] = {"version": version, "offset": offset, "count": count, "max": highest}
+                    current[path.name] = {"version": version, "offset": offset, "count": count, "max": highest,
+                                          "anchor": anchor, "digest": digest}
                     total += count + int(tail is not None)
                     maximum = max(maximum, highest, tail["i"] if tail is not None else -1)
             self._stats = current

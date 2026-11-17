@@ -83,7 +83,7 @@ config. Tests are stdlib `unittest`:
 ```sh
 pip install ruamel.yaml
 PYTHONPATH=<hermes-agent> python -m unittest discover -s tests
-# 52 tests, ~10s
+# 53 tests, ~10s
 ```
 
 `store.py` tests are dependency-free; the provider tests import
@@ -117,6 +117,6 @@ What this plugin does beyond local storage, so you can decide before installing:
 
 ## Status
 
-Working, benchmarked, 52/52 tests on Linux and Windows. The `store.py`
+Working, benchmarked, 53/53 tests on Linux and Windows. The `store.py`
 ranking, two-tier evidence routing, and negative gate are considered
 stable; the paraphrase gap is the open work item.

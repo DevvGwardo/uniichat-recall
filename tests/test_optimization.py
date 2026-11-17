@@ -110,6 +110,35 @@ class OptimizedStoreTests(unittest.TestCase):
         path.write_text(json.dumps({"i": 91, "text": "edit"}) + "\n")
         self.assertEqual(self.store.append("note", "after edit"), 92)
 
+    def test_same_size_external_edit_detected_when_file_stats_do_not_move(self):
+        # windows-latest CI caught this live: a same-size rewrite can present
+        # an identical stat tuple (size/mtime/ctime/ino) to the store, so stat
+        # identity alone must not gate cache reuse — the anchor line is the
+        # content proof. Freezing fstat forces that condition everywhere.
+        self.store.append("note", "old")
+        path = next((self.root / "main").glob("*.jsonl"))
+        path.write_text(json.dumps({"i": 90, "text": "edit"}) + "\n")
+        self.store.message_count()  # cache this file's stat tuple
+        with path.open("rb") as handle:
+            frozen = os.fstat(handle.fileno())
+        path.write_text(json.dumps({"i": 91, "text": "edit"}) + "\n")  # same size, new content
+        real_fstat = os.fstat
+
+        def frozen_fstat(handle):
+            stat = real_fstat(handle)
+            if stat.st_ino != frozen.st_ino:
+                return stat
+            return os.stat_result(
+                (frozen.st_mode, frozen.st_ino, frozen.st_dev, frozen.st_nlink,
+                 frozen.st_uid, frozen.st_gid, stat.st_size,
+                 frozen.st_atime, frozen.st_mtime, frozen.st_ctime),
+                {"st_atime_ns": frozen.st_atime_ns,
+                 "st_mtime_ns": frozen.st_mtime_ns,
+                 "st_ctime_ns": frozen.st_ctime_ns})
+
+        with patch("os.fstat", frozen_fstat):
+            self.assertEqual(self.store.append("note", "after edit"), 92)
+
     def test_complete_record_without_newline_is_not_lost(self):
         self.store.append("note", "first")
         path = next((self.root / "main").glob("*.jsonl"))
